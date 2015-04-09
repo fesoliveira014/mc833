@@ -1,7 +1,16 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "locadora.h"
+typedef struct {
+	int id;
+	char titulo[30];
+	int ano;
+	int genero;
+	char sinopse[400];
+	int num_exemplares;
+} filme;
+
+
 
 int main(int argc, char *argv[]){
 	if(argc <= 1){
@@ -23,12 +32,23 @@ int main(int argc, char *argv[]){
 	
 	scanf("%d", &n);
 	char aux;
-	scanf("%c", &aux);
+
 	int i, j;
 	for(i = m; i < m+n; i++){
 		locadora[i].id = i+1;
 		printf("Insira o titulo do filme %d:\n", i+1);
-		fgets(locadora[i].titulo, 30, stdin);
+		scanf("%c", &aux);
+		while(aux == '\n' || aux == ' ')
+			scanf("%c", &aux);
+		
+		j = 0;
+		while(aux != '\n' && j < 29){
+			locadora[i].titulo[j] = aux;
+			j++;
+			scanf("%c", &aux);
+		}
+		locadora[i].titulo[j] = '\0';
+		
 		
 		printf("Insira o ano do filme:\n");
 		scanf(" %d", &(locadora[i].ano));
@@ -36,12 +56,23 @@ int main(int argc, char *argv[]){
 		printf("Insira o indice do gênero do filme (ACAO=1, DRAMA=2, COMEDIA=3, AVENTURA=4, TERROR=5, SUSPENSE=6, DOCUMENTARIO=7:\n");
 		scanf(" %d", &(locadora[i].genero));
 		
+
+		printf("Insira a sinopse do filme: (MAX 400 caracteres)\n");
 		scanf("%c", &aux);
-		printf("Insira a sinopse do filme: (MAX 1000 caracteres)\n");
-		fgets(locadora[i].sinopse, 1000, stdin);
+		while(aux == '\n' || aux == ' ')
+			scanf("%c", &aux);
+		j = 0;
+		while(aux != '\n' && j < 400){
+			locadora[i].sinopse[j] = aux;
+			j++;
+			scanf("%c", &aux);
+		}
+		locadora[i].sinopse[j] = '\0';
 		
 		printf("Insira o número de exemplares disponiveis do filme:\n");
 		scanf(" %d", &(locadora[i].num_exemplares));
+		
+		printf("%s (%d) - Genero %d - %d exemplares - Sinopse:%s\n", locadora[i].titulo, locadora[i].ano, locadora[i].genero, locadora[i].num_exemplares, locadora[i].sinopse);
 	}
 	
 

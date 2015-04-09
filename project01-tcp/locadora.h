@@ -3,7 +3,7 @@ typedef struct {
 	char titulo[30];
 	int ano;
 	int genero;
-	char sinopse[1000];
+	char sinopse[400];
 	int num_exemplares;
 } filme;
 
