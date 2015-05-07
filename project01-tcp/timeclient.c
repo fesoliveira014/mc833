@@ -26,12 +26,12 @@
 
 void show_menu();
 void show_genres();
-void mywrite(int new_fd, char buf[]);
-void readAndPrint(int sockfd);
+void mywrite(int sockfd, char buf[], struct addrinfo *p);
+void readAndPrint(int sockfd, struct addrinfo *p);
 int strToInt(char buf[]);
 static struct timeval tm1;
 static inline void start();
-static inline void stop(int i);
+static inline void stop();
  
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -45,48 +45,46 @@ void *get_in_addr(struct sockaddr *sa)
  
 int main(int argc, char *argv[])
 {
-	int sockfd, numbytes;  
-	char buf[MAXDATASIZE];
+	int sockfd;
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
 	char s[INET6_ADDRSTRLEN];
 
 	if (argc != 2) {
-			fprintf(stderr,"usage: client hostname\n");
-			exit(1);
+		fprintf(stderr,"usage: client hostname\n");
+		exit(1);
 	}
 
 	memset(&hints, 0, sizeof hints);
 	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
+	hints.ai_socktype = SOCK_DGRAM;
 
 	if ((rv = getaddrinfo(argv[1], PORT, &hints, &servinfo)) != 0) {
-					fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
-					return 1;
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
+		return 1;
 	}
 
 	//printf("got address info\n");
 	// loop through all the results and connect to the first we can
 	for(p = servinfo; p != NULL; p = p->ai_next) {
-					if ((sockfd = socket(p->ai_family, p->ai_socktype,
-													p->ai_protocol)) == -1)
-					{
-									perror("client: socket");
-									continue;
-					}
+		if ((sockfd = socket(p->ai_family, p->ai_socktype,
+			p->ai_protocol)) == -1)
+		{
+			perror("client: socket");
+			continue;
+		}
 
-					if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
-									close(sockfd);
-									perror("client: connect");
-									continue;
-					}
+		if (connect(sockfd, p->ai_addr, p->ai_addrlen) == -1) {
+			close(sockfd);
+			perror("client: connect");
+			continue;
+		}
 
-					break;
+		break;
 	}
-
 	if (p == NULL) {
-					fprintf(stderr, "client: failed to connect\n");
-					return 2;
+		fprintf(stderr, "client: failed to connect\n");
+		return 2;
 	}
 
 	//printf("estabilishing connection...\n");
@@ -95,18 +93,14 @@ int main(int argc, char *argv[])
 									s, sizeof s);
 	//printf("client: connecting to %s\n", s);
 
-	freeaddrinfo(servinfo); // all done with this structure
-
-	if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
-			perror("recv");
-			exit(1);
-	}
-
-	buf[numbytes] = '\0';
-
-//	printf("%s\n\n",buf);
+	static struct timeval tm;
+	tm.tv_sec = 0;
+	tm.tv_usec = 100000;
+	setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tm, sizeof(tm));
 	
-	int numfilmes = strToInt(&(buf[45]));
+	freeaddrinfo(servinfo); // all done with this structure
+	
+	int numfilmes = 11;
 
 	char mywritebuf[MAXDATASIZE];
 	char option;
@@ -114,147 +108,154 @@ int main(int argc, char *argv[])
 
 	do
 	{
-//		show_menu();
+		//show_menu();
 		scanf(" %c", &option);
 		switch(option)
 		{
 			case '1':
 			{
 				start();
-				mywrite(sockfd, "1\0");
-				readAndPrint(sockfd);
-				stop(1);
+				mywrite(sockfd, "1\0", p);
+				readAndPrint(sockfd, p);
+				//printf("Tempo da Operacao 1: ");
+				stop();
 				break;
 			}
 			case '2':
 			{
 				mywritebuf[0] = '2';
 				mywritebuf[1] = ' ';
-//				show_genres();
+				//show_genres();
 				while(1)
 				{
 					scanf(" %c", &(mywritebuf[2]));
 					if(mywritebuf[2] < '1' || mywritebuf[2] > '7')
 					{
-//						printf("Opcao invalida.\n");
-//						show_genres();
+						//printf("Opcao invalida.\n");
+						//show_genres();
 					}
 					else
 						break;
 				}
 				mywritebuf[3] = '\0';
 				start();
-				mywrite(sockfd, mywritebuf);
-				readAndPrint(sockfd);
-				stop(2);
+				mywrite(sockfd, mywritebuf, p);
+				readAndPrint(sockfd, p);
+				//printf("Tempo da Operacao 2: ");
+				stop();
 				break;
 			}
 			case '3':
 			{
 				mywritebuf[0] = '3';
 				mywritebuf[1] = ' ';
-//				printf("Insira o id do filme: ");
+				//printf("Insira o id do filme: ");
 				while(1)
 				{
 					scanf(" %d", &id);
 					if(id < 1 || id > numfilmes)
 					{
-//						printf("Id invalido (Possuimos %d filmes).\n", numfilmes);
-//						printf("Insira o id do filme: ");
+						//printf("Id invalido (Possuimos %d filmes).\n", numfilmes);
+						//printf("Insira o id do filme: ");
 					}
 					else
 						break;
 				}
 				sprintf(&(mywritebuf[2]), "%d", id);
 				start();
-				mywrite(sockfd, mywritebuf);
-				readAndPrint(sockfd);
-				stop(3);
+				mywrite(sockfd, mywritebuf, p);
+				readAndPrint(sockfd, p);
+				//printf("Tempo da Operacao 3: ");
+				stop();
 				break;
 			}
 			case '4':
 			{
 				mywritebuf[0] = '4';
 				mywritebuf[1] = ' ';
-//				printf("Insira o id do filme: ");
+				//printf("Insira o id do filme: ");
 				while(1)
 				{
 					scanf(" %d", &id);
 					if(id < 1 || id > numfilmes)
 					{
-//						printf("Id invalido (Possuimos %d filmes).\n", numfilmes);
-//						printf("Insira o id do filme: ");
+						//printf("Id invalido (Possuimos %d filmes).\n", numfilmes);
+						//printf("Insira o id do filme: ");
 					}
 					else
 						break;
 				}
 				sprintf(&(mywritebuf[2]), "%d", id);
 				start();
-				mywrite(sockfd, mywritebuf);
-				readAndPrint(sockfd);
-				stop(4);
+				mywrite(sockfd, mywritebuf, p);
+				readAndPrint(sockfd, p);
+				//printf("Tempo da Operacao 4: ");
+				stop();
 				break;
 			}
 			case '5':
 			{
 				start();
-				mywrite(sockfd, "5\0");
-				readAndPrint(sockfd);
-				stop(5);
+				mywrite(sockfd, "5\0", p);
+				readAndPrint(sockfd, p);
+				//printf("Tempo da Operacao 5: ");
+				stop();
 				break;
 			}
 			case '6':
 			{
 				mywritebuf[0] = '6';
 				mywritebuf[1] = ' ';
-//				printf("Insira o id do filme: ");
+				//printf("Insira o id do filme: ");
 				while(1)
 				{
 					scanf(" %d", &id);
 					if(id < 1 || id > numfilmes)
 					{
-//						printf("Id invalido (Possuimos %d filmes).\n", numfilmes);
-//						printf("Insira o id do filme:  ");
+						//printf("Id invalido (Possuimos %d filmes).\n", numfilmes);
+						//printf("Insira o id do filme:  ");
 					}
 					else
 						break;
 				}
-//				printf("Insira o novo numero de exemplares: ");
+				//printf("Insira o novo numero de exemplares: ");
 				scanf(" %d", &num_exemplares);
 				sprintf(&(mywritebuf[2]), "%d %d", id, num_exemplares);
 				start();
-				mywrite(sockfd, mywritebuf);
-				readAndPrint(sockfd);
-				stop(6);
+				mywrite(sockfd, mywritebuf, p);
+				readAndPrint(sockfd, p);
+				//printf("Tempo da Operacao 6: ");
+				stop();
 				break;
 			}
 			case '7':
 			{
 				mywritebuf[0] = '7';
 				mywritebuf[1] = ' ';
-//				printf("Insira o id do filme: ");
+				//printf("Insira o id do filme: ");
 				while(1)
 				{
 					scanf(" %d", &id);
 					if(id < 1 || id > numfilmes)
 					{
-//						printf("Id invalido (Possuimos %d filmes).\n", numfilmes);
-//						printf("Insira o id do filme: ");
+						//printf("Id invalido (Possuimos %d filmes).\n", numfilmes);
+						//printf("Insira o id do filme: ");
 					}
 					else
 						break;
 				}
 				sprintf(&(mywritebuf[2]), "%d", id);
 				start();
-				mywrite(sockfd, mywritebuf);
-				readAndPrint(sockfd);
-				stop(7);
+				mywrite(sockfd, mywritebuf, p);
+				readAndPrint(sockfd, p);
+				//printf("Tempo da Operacao 7: ");
+				stop();
 				break;
 			}
 			
 			case '8':
 			{
-				mywrite(sockfd, "8\0");
+				mywrite(sockfd, "8\0", p);
 				break;
 			}
 
@@ -265,7 +266,7 @@ int main(int argc, char *argv[])
 			}
 		};
 
-//		printf("\n");
+		//printf("\n");
 
 	}while(option != '8');
 
@@ -299,7 +300,7 @@ void show_genres()
 	printf("Genero: ");
 }
  
-void mywrite(int sockfd, char buf[]){
+void mywrite(int sockfd, char buf[], struct addrinfo *p){
 	char sendBuf[MAXDATASIZE];
 	int i;
 	for(i = 0; buf[i] != '\0' && buf[i] != '\n'; i++){
@@ -307,27 +308,31 @@ void mywrite(int sockfd, char buf[]){
 	}
 	sendBuf[i] = buf[i];
 	i++;
-	if (write(sockfd, sendBuf, i) == -1)
+	if (sendto(sockfd, sendBuf, i, 0,p->ai_addr, p->ai_addrlen) == -1)
 		perror("Erro no write");
 }
 
-void readAndPrint(int sockfd){
-	int msgsize, i; 
+void readAndPrint(int sockfd, struct addrinfo *p){
+	int msgsize, i;
+	struct timeval tm, tm2;
+	gettimeofday(&tm, NULL);
 	char readbuf[MAXDATASIZE];
-	if((msgsize = read(sockfd, readbuf, MAXDATASIZE-1)) == -1) {
-		perror("Erro no read");
+	if((msgsize = recvfrom(sockfd, readbuf, MAXDATASIZE-1 , 0,p->ai_addr, &(p->ai_addrlen))) == -1) {
+		perror("Erro no recvfrom");
 		exit(1);
 	}
-	while(msgsize != 0){
+	gettimeofday(&tm2, NULL);
+	while(msgsize != 0 && tm2.tv_usec - tm.tv_usec < 500000){
 		for(i = 0; i < msgsize && readbuf[i] != '\0'; i++){
 //			printf("%c", readbuf[i]);
 		}
 		if(i < msgsize)
 			break;
-		if((msgsize = read(sockfd, readbuf, MAXDATASIZE-1)) == -1) {
-			perror("Erro no read");
-			exit(1);
+		if((msgsize = recvfrom(sockfd, readbuf, MAXDATASIZE-1 , 0,p->ai_addr, &(p->ai_addrlen))) == -1) {
+			printf("Timeout\n");
+			break;
 		}
+		gettimeofday(&tm2, NULL);
 	}
 	return;
 }
@@ -348,10 +353,10 @@ static inline void start()
     gettimeofday(&tm1, NULL);
 }
 
-static inline void stop(int i)
+static inline void stop()
 {
     struct timeval tm2;
     gettimeofday(&tm2, NULL);
     unsigned long long t = 1000000 * (tm2.tv_sec - tm1.tv_sec) + (tm2.tv_usec - tm1.tv_usec);
-    printf("%d: %llu us\n", i, t);
+    printf("%llu\n", t);
 }
