@@ -45,8 +45,7 @@ void *get_in_addr(struct sockaddr *sa)
  
 int main(int argc, char *argv[])
 {
-	int sockfd, numbytes;  
-	char buf[MAXDATASIZE];
+	int sockfd;
 	struct addrinfo hints, *servinfo, *p;
 	int rv;
 	char s[INET6_ADDRSTRLEN];
@@ -83,13 +82,9 @@ int main(int argc, char *argv[])
 
 		break;
 	}
-	static struct timeval tm;
-	tm.tv_sec = 0;
-	tm.tv_usec = 100000;
-	setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tm, sizeof(tm));
 	if (p == NULL) {
-					fprintf(stderr, "client: failed to connect\n");
-					return 2;
+		fprintf(stderr, "client: failed to connect\n");
+		return 2;
 	}
 
 	//printf("estabilishing connection...\n");
@@ -98,6 +93,11 @@ int main(int argc, char *argv[])
 									s, sizeof s);
 	//printf("client: connecting to %s\n", s);
 
+	static struct timeval tm;
+	tm.tv_sec = 0;
+	tm.tv_usec = 100000;
+	setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &tm, sizeof(tm));
+	
 	freeaddrinfo(servinfo); // all done with this structure
 	
 	int numfilmes = 11;
@@ -329,8 +329,8 @@ void readAndPrint(int sockfd, struct addrinfo *p){
 		if(i < msgsize)
 			break;
 		if((msgsize = recvfrom(sockfd, readbuf, MAXDATASIZE-1 , 0,p->ai_addr, &(p->ai_addrlen))) == -1) {
-			perror("Erro no recvfrom");
-			exit(1);
+			printf("A mensagem deu timeout\n");
+			break;
 		}
 		gettimeofday(&tm2, NULL);
 	}
