@@ -19,6 +19,7 @@
 #include <arpa/inet.h>
 #include <sys/wait.h>
 #include <signal.h>
+#include <sys/time.h>
 
 
 #define PORT "3535"  // the port users will be connecting to
@@ -39,6 +40,21 @@ typedef struct {
 	int num_exemplares;
 	int id;
 } filme;
+
+struct timeval tm1;
+
+static inline void start()
+{
+    gettimeofday(&tm1, NULL);
+}
+
+static inline void stop()
+{
+    struct timeval tm2;
+    gettimeofday(&tm2, NULL);
+    unsigned long long t = 1000000 * (tm2.tv_sec - tm1.tv_sec) + (tm2.tv_usec - tm1.tv_usec);
+    printf("%llu us\n", t);
+}
 
 void mywrite(int sockfd, char buf[], struct sockaddr_storage their_addr, socklen_t addr_len){	
 	char sendBuf[MAXDATASIZE];
@@ -97,15 +113,19 @@ void conexao(char *argv, int sockfd){
 		{
 			case '1':
 			{
+				start();
 				for(i = 0; i < numfilmes; i++){
 					sprintf(writebuf, "%s (%d)\n", locadora[i].titulo, locadora[i].ano);
 					mywrite(sockfd, writebuf, their_addr, addr_len);
 				}
 				mywrite(sockfd, "\0", their_addr, addr_len);
+				printf("Tempo de Processamento da Operacao 1: ");
+				stop();
 				break;
 			}
 			case '2':
 			{
+				start();
 				if(readbuf[2] < '0' || readbuf[2] > '9'){
 					mywrite(sockfd, "Genero Invalido", their_addr, addr_len);
 					break;
@@ -120,35 +140,47 @@ void conexao(char *argv, int sockfd){
 					mywrite(sockfd, writebuf, their_addr, addr_len);
 				}
 				mywrite(sockfd, "\0", their_addr, addr_len);
+				printf("Tempo de Processamento da Operacao 2: ");
+				stop();
 				break;
 			}
 			case '3':
 			{
+				start();
 				id = strToInt(&(readbuf[2]))-1;
 				strcpy(writebuf, locadora[id].sinopse);
 				strcat(writebuf, "\0");
 				mywrite(sockfd, writebuf, their_addr, addr_len);
+				printf("Tempo de Processamento da Operacao 3: ");
+				stop();
 				break;
 			}
 			case '4':
 			{
+				start();
 				id = strToInt(&(readbuf[2]))-1;
 				writeFilmInfo(writebuf, locadora, id);
 				mywrite(sockfd, writebuf, their_addr, addr_len);
 				mywrite(sockfd, "\0", their_addr, addr_len);
+				printf("Tempo de Processamento da Operacao 4: ");
+				stop();
 				break;
 			}
 			case '5':
 			{
+				start();
 				for(i = 0; i < numfilmes; i++){
 					writeFilmInfo(writebuf, locadora, i);
 					mywrite(sockfd, writebuf, their_addr, addr_len);
 				}
 				mywrite(sockfd, "\0", their_addr, addr_len);
+				printf("Tempo de Processamento da Operacao 5: ");
+				stop();
 				break;
 			}
 			case '6':
 			{
+				start();
 				id = strToInt(&(readbuf[2]))-1;
 				int shift = 3;
 				int aux = id+1;
@@ -164,10 +196,13 @@ void conexao(char *argv, int sockfd){
 				fclose(fp);
 				mywrite(sockfd, writebuf, their_addr, addr_len);
 				mywrite(sockfd, "\0", their_addr, addr_len);
+				printf("Tempo de Processamento da Operacao 6: ");
+				stop();
 				break;
 			}
 			case '7':
 			{
+				start();
 				fp=fopen(argv, "r+");
 				if(fp == NULL){
 					printf("Arquivo de Banco de Dados nao encontrado\n");
@@ -181,6 +216,8 @@ void conexao(char *argv, int sockfd){
 				sprintf(writebuf, "O filme %d possui %d exemplares\n", id+1, locadora[id].num_exemplares);
 				mywrite(sockfd, writebuf, their_addr, addr_len);
 				mywrite(sockfd, "\0", their_addr, addr_len);
+				printf("Tempo de Processamento da Operacao 7: ");
+				stop();
 				break;
 			}
 			default:
